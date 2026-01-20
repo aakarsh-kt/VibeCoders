@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum OperationType {
+  INSERT
+  DELETE
+  REPLACE
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  // friendships
+  friendshipsInitiated Friendship[] @relation("FriendshipsInitiated")
+  friendshipsReceived  Friendship[] @relation("FriendshipsReceived")
+
+  spaces     CodeSpaceMember[]
+  operations Operation[]
+}
+
+model Friendship {
+  id         String @id @default(uuid())
+  createdAt  DateTime @default(now())
+
+  requesterId String
+  addresseeId String
+
+  requester User @relation("FriendshipsInitiated", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipsReceived",  fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
+}
+model CodeSpaceMember {
+  id      String @id @default(uuid())
+  userId  String
+  spaceId String
+  role    Role
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space CodeSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, spaceId])
+  @@index([spaceId])
+}
+
+model CodeSpace {
+  id        String   @id @default(uuid())
+  language  String // "typescript", "python", "cpp", etc.
+  createdAt DateTime @default(now())
+
+  members    CodeSpaceMember[]
+  operations Operation[]
+  snapshots  Snapshot[]
+}
+
+model Operation {
+  id      String @id @default(uuid())
+  spaceId String
+  userId  String
+
+  type OperationType
+
+  startLine Int
+  startCol  Int
+  endLine   Int?
+  endCol    Int?
+
+  content String? // text being inserted / replaced
+
+  version   Int // monotonically increasing per space
+  createdAt DateTime @default(now())
+
+  space CodeSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, version])
+}
+
+model Snapshot {
+  id        String   @id @default(uuid())
+  spaceId   String
+  version   Int
+  content   String // full source code
+  createdAt DateTime @default(now())
+
+  space CodeSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, version])
+}
