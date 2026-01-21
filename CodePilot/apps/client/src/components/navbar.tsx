@@ -23,15 +23,19 @@ export function Navbar(props: NavbarProps) {
         // Initial check.
         setIsLoggedIn(Boolean(getAuthToken()));
 
-        // Keep state in sync if another tab logs in/out.
+        // Keep state in sync if another tab logs in/out AND for in-app routing.
         const handler = () => setIsLoggedIn(Boolean(getAuthToken()));
         window.addEventListener("storage", handler);
-        return () => window.removeEventListener("storage", handler);
+        window.addEventListener("popstate", handler);
+        return () => {
+            window.removeEventListener("storage", handler);
+            window.removeEventListener("popstate", handler);
+        };
     }, []);
 
     const goHome = () => {
         if (props.onHome) return props.onHome();
-        // No router yet: just do a normal navigation.
+        // Home is always the marketing landing page.
         navigate("/");
     };
 
@@ -53,18 +57,18 @@ export function Navbar(props: NavbarProps) {
         navigate("/", { replace: true });
     };
 
-    const dashboard = () => {
-        navigate("/dashboard");
-    };
-
     const createSpace = () => {
         navigate("/create-space");
+    };
+
+    const openApp = () => {
+        navigate("/app");
     };
 
     return (
         <header className="w-full border-b bg-background">
             <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 cursor-pointer" onClick={goHome}>
                     <div className="text-lg font-semibold tracking-tight">CodePilot</div>
                 </div>
 
@@ -75,11 +79,11 @@ export function Navbar(props: NavbarProps) {
 
                     {isLoggedIn ? (
                         <>
-                            <Button variant="ghost" onClick={createSpace}>
-                                Create Space
+                            <Button variant="ghost" onClick={openApp}>
+                                App
                             </Button>
-                            <Button variant="secondary" onClick={dashboard}>
-                                Dashboard
+                            <Button variant="ghost" onClick={createSpace}>
+                                Spaces
                             </Button>
                             <Button variant="destructive" onClick={logout}>
                                 Logout

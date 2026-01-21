@@ -4,69 +4,69 @@ import client from "db/client";
 import { addFriendsSchema, changeRoleSchema, deleteFriendsSchema, updateMetadataSchema } from "../types/index.ts";
 export const userRouter = Router();
 
-userRouter.get("/metadata",userMiddleware, async(req , res)=>{
-    const userId=req.userId;
-    if(!userId){
+userRouter.get("/metadata", userMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
         res.status(403).json({
-            message:"Unauthorized"
+            message: "Unauthorized"
         })
     }
-    try{
-        const user=await client.user.findFirst({
-            where:{
-                id:userId
+    try {
+        const user = await client.user.findFirst({
+            where: {
+                id: userId
             }
         })
-        if(!user){
+        if (!user) {
             res.status(403).json({
-                message:"No user found"
+                message: "No user found"
             })
         }
         return res.status(200).json({
-            username:user?.username
+            username: user?.username
         })
     }
-    catch(e){
+    catch (e) {
         return res.status(403).json({
-            message:e
+            message: e
         })
     }
 })
-userRouter.post("/metadata",userMiddleware, async(req , res)=>{
-    const userId=req.userId;
-    
-    if(!userId){
+userRouter.post("/metadata", userMiddleware, async (req, res) => {
+    const userId = req.userId;
+
+    if (!userId) {
         res.status(403).json({
-            message:"Unauthorized"
+            message: "Unauthorized"
         })
     }
-    const {success,data}=updateMetadataSchema.safeParse(req.body);
-     if (!success) {
+    const { success, data } = updateMetadataSchema.safeParse(req.body);
+    if (!success) {
         return res.status(403).json({
             message: "Invalid Inputs"
         })
     }
-    try{
-        const user=await client.user.update({
-            where:{
-                id:userId
+    try {
+        const user = await client.user.update({
+            where: {
+                id: userId
             },
-            data:{
-                username:data.username
+            data: {
+                username: data.username
             }
         })
-        if(!user){
+        if (!user) {
             return res.status(403).json({
-                message:"Username is not unique"
+                message: "Username is not unique"
             })
         }
         return res.status(200).json({
-            username:data.username 
+            username: data.username
         })
     }
-    catch(e){
+    catch (e) {
         return res.status(403).json({
-            message:e
+            message: e
         })
     }
 })
@@ -166,97 +166,130 @@ userRouter.post("/changeRole", userMiddleware, async (req, res) => {
         })
     }
 })
-userRouter.get("/friends",userMiddleware,async (req ,res)=>{
-   const userId = req.userId;
-    if (!userId) {
-        return res.status(401).json({
-            message: "Unauthorized"
-        })
-    }
-    try{
-           const friends=await client.friendship.findMany({
-            where:{
-                requesterId:userId
-            }
-           })
-           if(!friends){
-            return res.status(403).json({
-                message:"NO friends found"
-            })
-           }
-           return res.json({
-            friends
-           })
-    }catch(e){
-        res.status(403).json({
-            message:e
-        })
-    }
-})
-userRouter.post("/friends",userMiddleware,async(req ,res)=>{
+userRouter.get("/friends", userMiddleware, async (req, res) => {
     const userId = req.userId;
     if (!userId) {
         return res.status(401).json({
             message: "Unauthorized"
         })
     }
-    const {success,data}=addFriendsSchema.safeParse(req.body);
-     if (!success) {
+    try {
+        const friends = await client.friendship.findMany({
+            where: {
+                requesterId: userId
+            },
+            include: {
+                addressee: {
+                    select: {
+                        id: true,
+                        username: true,
+                    }
+                }
+            }
+        })
+        return res.json({
+            friends
+        })
+    } catch (e) {
+        res.status(403).json({
+            message: e
+        })
+    }
+})
+userRouter.post("/friends", userMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        return res.status(401).json({
+            message: "Unauthorized"
+        })
+    }
+    // Support adding friend by either userId or username.
+    const raw = req.body as { userId?: string; username?: string };
+    const parsedUserId = addFriendsSchema.safeParse(raw);
+    const username = typeof raw?.username === "string" ? raw.username.trim() : "";
+    if (!parsedUserId.success && username.length < 3) {
         return res.status(403).json({
             message: "Invalid Inputs"
         })
     }
-    try{
-           const friends=await client.friendship.create({
-            data: {
-                requesterId: userId,
-                addresseeId: data.userId,
-            },
-            });
-            if(!friends){
-                return res.status(411).json({
-                    message:"No friends found"
+    try {
+        let addresseeId = parsedUserId.success ? parsedUserId.data.userId : "";
+        if (!addresseeId) {
+            const target = await client.user.findUnique({
+                where: { username }
+            })
+            if (!target) {
+                return res.status(404).json({
+                    message: "User not found"
                 })
             }
-            return res.json({friends})
-    }catch(e){
+            addresseeId = target.id;
+        }
+
+        if (addresseeId === userId) {
+            return res.status(400).json({
+                message: "You can't add yourself as a friend"
+            })
+        }
+
+        const friends = await client.friendship.create({
+            data: {
+                requesterId: userId,
+                addresseeId,
+            },
+            include: {
+                addressee: {
+                    select: {
+                        id: true,
+                        username: true,
+                    }
+                }
+            }
+        });
+        if (!friends) {
+            return res.status(411).json({
+                message: "No friends found"
+            })
+        }
+        return res.json({ friends })
+    } catch (e) {
         res.status(403).json({
-            message:e
+            message: e
         })
     }
 })
-userRouter.post("/deletefriends",userMiddleware,async(req ,res)=>{
+userRouter.post("/deletefriends", userMiddleware, async (req, res) => {
     const userId = req.userId;
     if (!userId) {
         return res.status(401).json({
             message: "Unauthorized",
-            request:req
+            request: req
         })
     }
-    const {success,data}=deleteFriendsSchema.safeParse(req.body);
-     if (!success) {
+    const { success, data } = deleteFriendsSchema.safeParse(req.body);
+    if (!success) {
         return res.status(403).json({
             message: "Invalid Inputs"
         })
     }
-    try{
-           const friends=await client.friendship.delete({
+    try {
+        const friends = await client.friendship.delete({
             where: {
                 requesterId_addresseeId: {
-                    requesterId:userId,
+                    requesterId: userId,
                     addresseeId: data.userId,
                 }
             },
-            });
-            if(!friends){
-                return res.status(411).json({
-                    message:"No friends found"
-                })
-            }
-            return res.json({message:"Friend deleted"})
-    }catch(e){
+        });
+        if (!friends) {
+            return res.status(411).json({
+                message: "No friends found"
+            })
+        }
+        return res.json({ message: "Friend deleted" })
+    } catch (e) {
         res.status(403).json({
-            message:e
+            message: e
         })
     }
 })

@@ -1,7 +1,5 @@
-
 const axios2 = require("axios");
 const BACKEND_URL = "http://localhost:3000";
-
 
 const axios = {
     post: async (...args) => {
@@ -37,7 +35,6 @@ const axios = {
         }
     },
 };
-
 
 describe("Authentication", () => {
     test("Authentication done only once", async () => {
@@ -430,5 +427,5 @@ describe("User Queries",()=>{
     })
 })
 describe("Websocket Queries",()=>{
-    
+
 })

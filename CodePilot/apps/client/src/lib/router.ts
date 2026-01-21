@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-type Route = "/" | "/login" | "/signup" | "/dashboard" | "/create-space";
+type Route = "/" | "/login" | "/signup" | "/create-space" | "/app";
 
 type NavigateOptions = {
     replace?: boolean;
@@ -20,8 +20,8 @@ export function useRoute(): Route {
         const p = window.location.pathname;
         if (p === "/login") return "/login";
         if (p === "/signup") return "/signup";
-        if (p === "/dashboard") return "/dashboard";
         if (p === "/create-space") return "/create-space";
+        if (p === "/app") return "/app";
         return "/";
     };
 

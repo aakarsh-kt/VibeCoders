@@ -1,148 +1,152 @@
-import {Router} from "express";
+import { Router } from "express";
 import client from "db/client"
 import { addUserSchema, createSpaceSchema } from "../types/index";
 import { userMiddleware } from "../middleware/userMiddleware";
-export const spaceRouter=Router();
-spaceRouter.post("/",userMiddleware,async (req,res)=>{
-    const userId=req.userId;
-    if(!userId){
+export const spaceRouter = Router();
+spaceRouter.post("/", userMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
         return res.status(401).json({
-            message:"Unauthorized"
+            message: "Unauthorized"
         })
     }
-    const {success,data}=createSpaceSchema.safeParse(req.body);
-    if(!success){
+    const { success, data } = createSpaceSchema.safeParse(req.body);
+    if (!success) {
+    
         return res.status(403).json({
-            message:"Invalid Data"
+            message: "Invalid Data"
         })
     }
-    try{
-        const space= await client.codeSpace.create({
-            data:{
-                language:data.language,
-               
-                members:{
-                    create:{
-                        userId:userId,
-                        role:"OWNER"
+    try {
+        console.log(data);
+        const space = await client.codeSpace.create({
+            data: {
+                name: data.name ?? data.language,
+                language: data.language,
+
+                members: {
+                    create: {
+                        userId: userId,
+                        role: "OWNER"
                     },
                 },
             },
-            include:{
-                members:true
+            include: {
+                members: true
             }
         })
         res.json(space);
     }
-    catch(e){
+    catch (e) {
         return res.status(403).json({
-            message:"There was some error in creating the space"
+            message: "There was some error in creating the space"
         })
     }
 })
-spaceRouter.get("/",userMiddleware,async (req,res)=>{
-    const userId=req.userId;
- 
-    try{
+spaceRouter.get("/", userMiddleware, async (req, res) => {
+    const userId = req.userId;
+
+    try {
         // const user = await client.user.find
-        const user= await client.user.findFirst({
-            where:{
-                id:userId
+        const user = await client.user.findFirst({
+            where: {
+                id: userId
             }
         })
 
-        if(!user){
-           return res.status(400).json({
-                message:"No User found"
+        if (!user) {
+            return res.status(400).json({
+                message: "No User found"
             })
         }
         else {
-            const spaces=await client.codeSpace.findMany({
-                where:{
-                    members:{
-                        some:{
-                            userId:userId
+            const spaces = await client.codeSpace.findMany({
+                where: {
+                    members: {
+                        some: {
+                            userId: userId
                         }
-                        
+
                     },
                 },
-                          include: {
-                     members: true
-                  }
+                include: {
+                    members: true
+                }
             })
             return res.status(200).json({
                 spaces
             })
         }
     }
-    catch(e){
+    catch (e) {
         res.status(400).json({
-            message:"Invalid Id"
+            message: "Invalid Id"
         })
         return res;
     }
 })
-spaceRouter.delete("/:spaceId",userMiddleware,async (req, res)=>{
-    const userId=req.userId;
-    
-    const spaceId=req.params.spaceId as string;
-   
-    try{
-        const space=await client.codeSpace.delete({
-            where:{
-                id:spaceId
+spaceRouter.delete("/:spaceId", userMiddleware, async (req, res) => {
+    const userId = req.userId;
+
+    const spaceId = req.params.spaceId as string;
+
+    try {
+        const space = await client.codeSpace.delete({
+            where: {
+                id: spaceId
             }
         })
-        if(!space){
+        if (!space) {
             return res.status(411).json({
-                message:"No space found"
+                message: "No space found"
             })
         }
         return res.json({
             space
         })
-    }catch(e){
+    } catch (e) {
         res.status(409).json({
-            message:"Unable to delete space"
+            message: "Unable to delete space"
         })
     }
 })
-spaceRouter.post("/addUser",userMiddleware,async (req,res)=>{
-    const userId=req.userId;
-    const {success,data}=addUserSchema.safeParse(req.body);
-    if(!success){
+spaceRouter.post("/addUser", userMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const { success, data } = addUserSchema.safeParse(req.body);
+    if (!success) {
         res.status(403).json({
-            message:"Invalid credentials"
+            message: "Invalid credentials"
         })
         return
     }
-    try{
-        const addUserToSpace= await client.codeSpace.update({
-            where:{
-                id:data.spaceId
+    try {
+        const addUserToSpace = await client.codeSpace.update({
+            where: {
+                id: data.spaceId
             },
-            data:{
-                members:{
-                    create:{
-                        userId:data.userId,
-                        role:data.role 
+            data: {
+                members: {
+                    create: {
+                        userId: data.userId,
+                        role: data.role
 
                     }
                 }
             }
         }
         )
-        if(!addUserToSpace)
+        if (!addUserToSpace)
             return res.status(411).json({
-        message:"Something went wrong"})
+                message: "Something went wrong"
+            })
 
         return res.status(200).json({
-            id:addUserToSpace.id
+            id: addUserToSpace.id
         })
     }
-    catch(e){
+    catch (e) {
         return res.status(403).json({
-            message:e
+            message: e
         })
     }
 })

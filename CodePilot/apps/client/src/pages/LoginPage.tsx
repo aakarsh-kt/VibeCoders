@@ -30,7 +30,7 @@ export function LoginPage() {
         try {
             const res = await postJson<SignInResponse>("/signin", { username, password });
             setToken(res.token);
-            navigate("/dashboard", { replace: true });
+            navigate("/", { replace: true });
         } catch (err) {
             setError(err instanceof Error ? err.message : "Login failed");
         } finally {

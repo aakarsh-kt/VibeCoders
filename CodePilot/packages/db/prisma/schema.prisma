@@ -33,18 +33,19 @@ model User {
 }
 
 model Friendship {
-  id         String @id @default(uuid())
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
 
   requesterId String
   addresseeId String
 
   requester User @relation("FriendshipsInitiated", fields: [requesterId], references: [id], onDelete: Cascade)
-  addressee User @relation("FriendshipsReceived",  fields: [addresseeId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipsReceived", fields: [addresseeId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, addresseeId])
   @@index([addresseeId])
 }
+
 model CodeSpaceMember {
   id      String @id @default(uuid())
   userId  String
@@ -60,6 +61,7 @@ model CodeSpaceMember {
 
 model CodeSpace {
   id        String   @id @default(uuid())
+  name      String
   language  String // "typescript", "python", "cpp", etc.
   createdAt DateTime @default(now())
 
