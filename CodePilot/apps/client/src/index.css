@@ -5,7 +5,38 @@
     @apply font-sans;
   }
 
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     @apply min-w-[320px] min-h-screen relative m-0 bg-background text-foreground overflow-x-hidden;
   }
+}
+
+/* Reusable slim, modern scrollbar */
+.pretty-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+}
+
+.pretty-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.pretty-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pretty-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.35);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.pretty-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.55);
 }

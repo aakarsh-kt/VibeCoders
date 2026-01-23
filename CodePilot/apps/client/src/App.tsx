@@ -10,6 +10,7 @@ import { AppHomePage } from "./pages/AppHomePage";
 import { CreateSpacePage } from "./pages/CreateSpacePage";
 import { SignupPage } from "./pages/SignupPage";
 import { useEffect, useState } from "react";
+import Space from "./pages/Space";
 
 type SpacePreview = {
   id: string;
@@ -66,7 +67,7 @@ export function App() {
   }, [route, isLoggedIn]);
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden">
+    <div className="min-h-screen w-full overflow-x-hidden flex flex-col overflow-y-hidden p-0 m-0">
       <Navbar />
 
       {route === "/login" ? (
@@ -77,7 +78,10 @@ export function App() {
         <AppHomePage />
       ) : route === "/create-space" ? (
         <CreateSpacePage />
+      ) : route === "/space" || route.startsWith("/space/") ? (
+        <Space />
       ) : (
+
         <>
 
           {/* Background */}

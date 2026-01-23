@@ -8,6 +8,7 @@ import { deleteJsonAuth, getJsonAuth, postJsonAuth } from "../../lib/api";
 import type { CreateSpaceResponse, ListSpacesResponse, Space } from "../../types/spaces";
 
 import { languages } from "common/types";
+import { navigate, spacePath } from "../../lib/router";
 
 type SpacesPanelProps = {
     token: string;
@@ -16,7 +17,6 @@ type SpacesPanelProps = {
 export function SpacesPanel({ token }: SpacesPanelProps) {
     const [name, setName] = useState("");
     const [language, setLanguage] = useState("");
-
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -69,7 +69,9 @@ export function SpacesPanel({ token }: SpacesPanelProps) {
             setSpacesError(e instanceof Error ? e.message : "Failed to delete space");
         }
     };
-
+    function handleOpenSpace(id: string) {
+        navigate(spacePath(id));
+    }
     useEffect(() => {
         void refreshSpaces();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,6 +138,10 @@ export function SpacesPanel({ token }: SpacesPanelProps) {
                                         <div className="text-sm font-medium">{s.name ?? s.language}</div>
                                         <div className="text-xs text-muted-foreground">{s.language} • id: {s.id}</div>
                                     </div>
+
+                                    <Button variant="destructive" onClick={() => handleOpenSpace(s.id)}>
+                                        Enter
+                                    </Button>
                                     <Button variant="destructive" onClick={() => void deleteSpace(s.id)}>
                                         Delete
                                     </Button>
