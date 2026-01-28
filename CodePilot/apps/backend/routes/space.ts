@@ -85,11 +85,12 @@ spaceRouter.get("/", userMiddleware, async (req, res) => {
         return res;
     }
 })
-spaceRouter.delete("/:spaceId", userMiddleware, async (req, res) => {
+spaceRouter.get("/delete/:spaceId", userMiddleware, async (req, res) => {
     const userId = req.userId;
 
-    const spaceId = req.params.spaceId as string;
-
+    let spaceId = req.params.spaceId as string;
+    spaceId=spaceId.substring(1,spaceId.length)
+   
     try {
         const space = await client.codeSpace.delete({
             where: {

@@ -1,6 +1,8 @@
 const axios2 = require("axios");
-const BACKEND_URL = "http://localhost:3000";
+const WebSocket = require("ws");
 
+const BACKEND_URL = "http://localhost:3000";
+const WS_URL = "ws://localhost:3001";
 const axios = {
     post: async (...args) => {
         try {
@@ -44,7 +46,7 @@ describe("Authentication", () => {
             username,
             password
         })
-        // console.log(res.data);
+       
         expect(res.status).toBe(200);
         const res2 = await axios.post(`${BACKEND_URL}/signup`, {
             username,
@@ -79,7 +81,6 @@ describe("Authentication", () => {
 
     })
 })
-
 describe("Space Queries",()=>{
     test("False user can not fetch space", async ()=>{
         const username="Akarsh"+Math.random();
@@ -128,13 +129,13 @@ describe("Space Queries",()=>{
         })
     
         const space=await axios.post(`${BACKEND_URL}/space`,{
+            name:"akrsh-"+Math.random(),
             language:"cpp",
         },
         {
             headers:{"authorization":userSignInResponse.data.token}}
         )
      
-       
         expect(space.status).toBe(200);
     })
     test("Only user can delete space", async ()=>{
@@ -151,19 +152,20 @@ describe("Space Queries",()=>{
         const token=userSignInResponse.data.token;
 
         const space=await axios.post(`${BACKEND_URL}/space`,{
-            language:"cpp",
+            name:"akrsh-"+Math.random(),
+            language:"python",
         },
         {
             headers:{"authorization":token}
         }
         )
     
-        const deleteSpaceResponse= await axios.delete(`${BACKEND_URL}/space/${space.data.id}`,
+        const deleteSpaceResponse= await axios.get(`${BACKEND_URL}/space/delete/:${space.data.id}`,
         {
             headers:{"authorization":token}
         }
         )
-    
+      
         expect(deleteSpaceResponse.status).toBe(200);
     })
     test("User can add another user to it's code space", async ()=>{
@@ -420,12 +422,120 @@ describe("User Queries",()=>{
             }
         })
      
-        
-        console.log(response.data)
         expect(response2.data.friends.length).toBe(0);
         expect(response.status).toBe(200);
     })
 })
 describe("Websocket Queries",()=>{
+    let ws1:WebSocket;
+    let ws2:WebSocket;
+    let ws1Messages:any = [] ;
+    let ws2Messages:any = [] ;
+    let username="";
+    let password="";
+    let username2="";
+    let password2="";
+    let userSignInResponse;
+    let userSignInResponse2;
+    let userSignupResponse;
+    let userSignupResponse2;
+    let userId1="";
+    let userId2="";
+    let token1="";
+    let token2="";
+    let spaceId="";
+    async function waitForAndPopLatestMessage(messageArray:any) {
+      return new Promise(resolve => {
+          if (messageArray.length > 0) {
+              resolve(messageArray.shift())
+          } else {
+              let interval = setInterval(() => {
+                  if (messageArray.length > 0) {
+                      resolve(messageArray.shift())
+                      clearInterval(interval)
+                  }
+              }, 100)
+          }
+      })
+    }
+    async function setupHttp(){
+         username="Akarsh"+Math.random();
+         password="123345234";
+         userSignupResponse=await axios.post(`${BACKEND_URL}/signup`,{
+            username,
+            password
+        })
 
+         userSignInResponse=await axios.post(`${BACKEND_URL}/signin`,{
+            username,
+            password
+        })
+        userId1=userSignInResponse.data.id;
+         username2="Akars6h"+Math.random();
+         password2="231231311";
+         userSignupResponse2=await axios.post(`${BACKEND_URL}/signup`,{
+            username:username2,
+            password:password2
+        })
+       
+         userSignInResponse2=await axios.post(`${BACKEND_URL}/signin`,{
+            username:username2,
+            password:password2
+        })
+         token1=userSignInResponse.data.token;
+         token2=userSignInResponse2.data.token;
+            const space=await axios.post(`${BACKEND_URL}/space`,{
+            language:"cpp",
+        },
+        {
+            headers:{"authorization":token1}
+        }
+        )
+        userId2=userSignInResponse2.data.id;
+        spaceId=space.data.id;
+         const addUserToSpaceResponse= await axios.post(`${BACKEND_URL}/space/addUser`,{
+            userId:userId2,
+            spaceId:spaceId,
+            role:"VIEWER"
+        },{
+            headers:{
+                "authorization":token1
+            }
+        })
+    }
+    async function setupWs(){
+        ws1= new WebSocket(WS_URL)
+
+        ws1.onmessage=(msg)=>{
+        
+            ws1Messages.push(JSON.parse(msg.data));
+        }
+         await new Promise(r => {
+        ws1.onopen = r
+      })
+      ws2= new WebSocket(WS_URL)
+      
+      ws2.onmessage=(msg)=>{
+          ws2Messages.push(JSON.parse(msg.data));
+        }
+        await new Promise(r => {
+       ws2.onopen = r
+     })
+    }
+    beforeAll(async ()=>{
+        await setupHttp();
+        await setupWs();
+    })
+    test("Joining a websocket room",async ()=>{
+        ws1.send(JSON.stringify({
+            "type":"join",
+            "payload":{
+                "spaceId":spaceId,
+                "token":token1
+            }
+        }))
+
+        const msg1=await waitForAndPopLatestMessage(ws1Messages) as any;
+        expect(msg1.type).toBe("space-joined")
+    })
 })

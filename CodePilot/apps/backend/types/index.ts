@@ -11,7 +11,7 @@ export const signinSchema = z.object({
 })
 export const createSpaceSchema = z.object({
     name: z.string().min(1).optional(),
-    language: z.enum(["javascript", "python", "typescript"]),
+    language: z.enum(["javascript", "python", "typescript","cpp"]),
 })
 
 export const addUserSchema = z.object({
